@@ -11,7 +11,7 @@ create table user
 
 create table pc
 (
-    pc_id varchar(30) primary key,
+    pc_mac_address varchar(30) primary key,
     pc_logged_in_user varchar(30)
 );
 
