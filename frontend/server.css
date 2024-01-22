@@ -1,0 +1,19 @@
+.pc_slot_list {
+}
+
+.pc_slot {
+  border-radius: 10px;
+  overflow : hidden;
+  background-color: #606060;
+  color: white;
+  width: 100px;
+  height: 100px;
+  margin : 20px;
+  padding: 10px;
+  display: inline-block;
+  transition: 0.5s ease;
+}
+
+.pc_slot:hover {
+  background-color: #202020
+}
