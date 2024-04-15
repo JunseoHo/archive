@@ -1,9 +1,7 @@
 import sys, os
 
-import numpy as np
-
-from activate_functions import *
-from error_functions import *
+from common.activate_functions import *
+from common.error_functions import *
 
 sys.path.append(os.pardir)
 
