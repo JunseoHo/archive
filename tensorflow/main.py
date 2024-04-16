@@ -1,9 +1,14 @@
+# 아래와 같은 텐서 플로우 공식 문서를 참고하였음.
+# https://www.tensorflow.org/tutorials/images/segmentation?hl=ko
+
 import tensorflow as tf
 import tensorflow_datasets as tfds  # 텐서플로우에서 자주 사용되는 데이터 세트를 쉽게 활용할 수 있도록 만들어진 라이브러리
 import pix2pix
 # from IPython.display import clear_output
 import matplotlib.pyplot as plt
-
+# venv 가상 환경에서 GraphViz를 사용하기 위해서는 아래와 같이 경로를 직접 추가해야 한다.
+import os
+os.environ["PATH"] += os.pathsep + "C:\\Users\\Work\Desktop\\Workspace\\archive\\tensorflow\\Graphviz\\bin"
 # with_info는 데이터 세트의 메타데이터(데이터 세트 설명, 클래스 개수, 이미지 크기 등)의 로드 여부
 dataset, info = tfds.load('oxford_iiit_pet:3.*.*', with_info=True)
 
@@ -152,20 +157,52 @@ model.compile(optimizer='adam',
               loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
               metrics=['accuracy'])
 
-# pip install pydot-ng graphviz
 tf.keras.utils.plot_model(model, show_shapes=True)
 
+
 def create_mask(pred_mask):
-  pred_mask = tf.math.argmax(pred_mask, axis=-1)
-  pred_mask = pred_mask[..., tf.newaxis]
-  return pred_mask[0]
+    pred_mask = tf.math.argmax(pred_mask, axis=-1)
+    pred_mask = pred_mask[..., tf.newaxis]
+    return pred_mask[0]
+
 
 def show_predictions(dataset=None, num=1):
-  if dataset:
-    for image, mask in dataset.take(num):
-      pred_mask = model.predict(image)
-      display([image[0], mask[0], create_mask(pred_mask)])
-  else:
-    print('No dataset provided')
+    if dataset:
+        for image, mask in dataset.take(num):
+            pred_mask = model.predict(image)
+            display([image[0], mask[0], create_mask(pred_mask)])
+    else:
+        print('No dataset provided')
 
-show_predictions()
+
+# class DisplayCallback(tf.keras.callbacks.Callback):
+#   def on_epoch_end(self, epoch, logs=None):
+#     clear_output(wait=True)
+#     show_predictions()
+#     print ('\nSample Prediction after epoch {}\n'.format(epoch+1))
+
+EPOCHS = 3
+VAL_SUBSPLITS = 5
+VALIDATION_STEPS = info.splits['test'].num_examples//BATCH_SIZE//VAL_SUBSPLITS
+
+model_history = model.fit(train_batches, epochs=EPOCHS,
+                          steps_per_epoch=STEPS_PER_EPOCH,
+                          validation_steps=VALIDATION_STEPS,
+                          validation_data=test_batches)
+                          # callbacks=[DisplayCallback()])
+
+loss = model_history.history['loss']
+val_loss = model_history.history['val_loss']
+
+plt.figure()
+plt.plot(model_history.epoch, loss, 'r', label='Training loss')
+plt.plot(model_history.epoch, val_loss, 'bo', label='Validation loss')
+plt.title('Training and Validation Loss')
+plt.xlabel('Epoch')
+plt.ylabel('Loss Value')
+plt.ylim([0, 1])
+plt.legend()
+plt.show()
+
+show_predictions(test_batches, 3)
+
