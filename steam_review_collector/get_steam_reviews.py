@@ -1,4 +1,3 @@
-import sys
 from urllib.parse import quote
 import requests
 from datetime import datetime
@@ -34,10 +33,15 @@ WRITTEN_DURING_EARLY_ACCESS = "written_during_early_access"
 def preprocess_steam_review(review):
     review[REVIEW] = (review[REVIEW]
                       .lower()
-                      .replace("\n", "\\n")
-                      .replace("\r", "\\r")
+                      .replace("\n", " ")
+                      .replace("\r", " ")
+                      .replace(",", " ")
+                      .replace(".", " ")
+                      .replace("-", "")
                       .replace("\"", "")
-                      .replace(",", ""))
+                      .replace(",", "")
+                      .replace("✇", ""))
+
     review[LAST_PLAYED] = datetime.fromtimestamp(review[LAST_PLAYED]).strftime("%Y-%m-%d")
     review[TIMESTAMP_CREATED] = datetime.fromtimestamp(review[TIMESTAMP_CREATED]).strftime("%Y-%m-%d")
     review[TIMESTAMP_UPDATED] = datetime.fromtimestamp(review[TIMESTAMP_UPDATED]).strftime("%Y-%m-%d")
