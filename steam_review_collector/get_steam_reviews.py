@@ -31,16 +31,14 @@ WRITTEN_DURING_EARLY_ACCESS = "written_during_early_access"
 
 
 def preprocess_steam_review(review):
-    review[REVIEW] = (review[REVIEW]
-                      .lower()
-                      .replace("\n", " ")
-                      .replace("\r", " ")
-                      .replace(",", " ")
-                      .replace(".", " ")
-                      .replace("-", "")
-                      .replace("\"", "")
-                      .replace(",", "")
-                      .replace("✇", ""))
+    review[REVIEW] = review[REVIEW].replace("\r", ' ')
+    review[REVIEW] = review[REVIEW].replace("\n", ' ')
+    with open("word_to_space", "r", encoding='utf-8') as file:
+        for word in file.read().splitlines():
+            review[REVIEW] = review[REVIEW].replace(word, ' ')
+    with open("word_to_remove", "r", encoding='utf-8') as file:
+        for word in file.read().splitlines():
+            review[REVIEW] = review[REVIEW].replace(word, '')
 
     review[LAST_PLAYED] = datetime.fromtimestamp(review[LAST_PLAYED]).strftime("%Y-%m-%d")
     review[TIMESTAMP_CREATED] = datetime.fromtimestamp(review[TIMESTAMP_CREATED]).strftime("%Y-%m-%d")
@@ -62,6 +60,7 @@ def get_steam_reviews(appid, filter="all", language="all", day_range=30, review_
            f"&num_per_page={num_per_page}"
            f"&filter_offtopic_activity={filter_offtopic_activity}")
     cursor = "*"
+    cursor_histories = []
     steam_reviews = []
 
     print_console(f"Start fetching steam reviews... (App ID : {appid})", color="blue")
@@ -107,6 +106,9 @@ def get_steam_reviews(appid, filter="all", language="all", day_range=30, review_
                 WRITTEN_DURING_EARLY_ACCESS: review[WRITTEN_DURING_EARLY_ACCESS]
             }))
         cursor = quote(json['cursor'])
+        if cursor in cursor_histories:
+            return steam_reviews
+        cursor_histories.append(cursor)
 
 
 def get_steam_reviews_all(appids, filter="all", language="all", day_range=30, review_type="all",

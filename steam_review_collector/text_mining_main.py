@@ -13,7 +13,7 @@ review_list = df['review'].tolist()
 stop_words = set(stopwords.words('english'))
 
 # Add custom stop words
-with open("custom_stop_words", "r") as file:
+with open("stop_words", "r") as file:
     custom_stop_words = file.read().splitlines()
 stop_words.update(custom_stop_words)
 
@@ -44,17 +44,21 @@ for stems in stems_list:
 freq_df = pd.DataFrame(freq_data)
 
 # Frequency
-# keywords_freq = freq_df.sum()
-# sorted_keywords_freq = keywords_freq.sort_values(ascending=False)
-# top_10_keywords_freq = sorted_keywords_freq.head(100)
-# print(top_10_keywords_freq)
+print("\n\n[Frequency]")
+keywords_freq = freq_df.sum()
+sorted_keywords_freq = keywords_freq.sort_values(ascending=False)
+top_10_keywords_freq = sorted_keywords_freq.head(100)
+print(top_10_keywords_freq)
 
 # TF-IDF
+print("\n\n[TF-IDF]")
 tf_dict = freq_df.sum()
 tf_idf = {}
 
 for tf_key, tf_value in tf_dict.items():
     idf = (freq_df[tf_key] != 0).sum()
+    if idf < 5:
+        continue
     tf_idf[tf_key] = tf_value / idf
 
 sorted_dict = sorted(tf_idf.items(), reverse=True, key=lambda x: x[1])
