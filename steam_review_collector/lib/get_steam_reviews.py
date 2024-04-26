@@ -1,7 +1,7 @@
 from urllib.parse import quote
-import requests
 from datetime import datetime
-from console_utils import *
+from lib.console_utils import *
+import requests
 
 """
     API Keys
@@ -29,17 +29,23 @@ STEAM_PURCHASE = "steam_purchase"
 RECEIVED_FOR_FREE = "received_for_free"
 WRITTEN_DURING_EARLY_ACCESS = "written_during_early_access"
 
+"""
+    File Paths
+"""
+PATH_WORD_TO_SPACE = "params/word_to_space"
+PATH_WORD_TO_REMOVE = "params/word_to_remove"
+
 
 def preprocess_steam_review(review):
-    review[REVIEW] = review[REVIEW].replace("\r", ' ')
-    review[REVIEW] = review[REVIEW].replace("\n", ' ')
-    with open("word_to_space", "r", encoding='utf-8') as file:
+    # remove new line characters
+    review[REVIEW] = review[REVIEW].replace("\r", ' ').replace("\n", ' ')
+    with open(PATH_WORD_TO_SPACE, "r", encoding='utf-8') as file:
         for word in file.read().splitlines():
             review[REVIEW] = review[REVIEW].replace(word, ' ')
-    with open("word_to_remove", "r", encoding='utf-8') as file:
+    with open(PATH_WORD_TO_REMOVE, "r", encoding='utf-8') as file:
         for word in file.read().splitlines():
             review[REVIEW] = review[REVIEW].replace(word, '')
-
+    # Change time format ( Unix time -> Date time )
     review[LAST_PLAYED] = datetime.fromtimestamp(review[LAST_PLAYED]).strftime("%Y-%m-%d")
     review[TIMESTAMP_CREATED] = datetime.fromtimestamp(review[TIMESTAMP_CREATED]).strftime("%Y-%m-%d")
     review[TIMESTAMP_UPDATED] = datetime.fromtimestamp(review[TIMESTAMP_UPDATED]).strftime("%Y-%m-%d")
@@ -48,7 +54,7 @@ def preprocess_steam_review(review):
 
 
 def get_steam_reviews(appid, filter="all", language="all", day_range=30, review_type="all",
-                      purchase_type="all", num_per_page=20, filter_offtopic_activity=1):
+                      purchase_type="all", num_per_page=20, filter_offtopic_activity=1, max_count=None):
     url = (f"https://store.steampowered.com/appreviews/"
            f"{appid}?"
            f"json=1"
@@ -69,7 +75,7 @@ def get_steam_reviews(appid, filter="all", language="all", day_range=30, review_
         response = requests.get(f"{url}&cursor={cursor}")
 
         if response.status_code != 200:
-            sys.stderr.write(f"API error: HTTP status is {response.status_code}\n")
+            sys.stderr.write(f"HTTP error: HTTP status is {response.status_code}\n")
             return None
 
         json = response.json()
@@ -105,26 +111,35 @@ def get_steam_reviews(appid, filter="all", language="all", day_range=30, review_
                 RECEIVED_FOR_FREE: review[RECEIVED_FOR_FREE],
                 WRITTEN_DURING_EARLY_ACCESS: review[WRITTEN_DURING_EARLY_ACCESS]
             }))
+
         cursor = quote(json['cursor'])
+
+        if max_count != None and len(steam_reviews) >= max_count:
+            print_console(f"Retrieved {max_count} steam reviews! (App ID : {appid})", color="green")
+            return steam_reviews[:max_count]
+
         if cursor in cursor_histories:
+            print_console(f"Retrieved all {len(steam_reviews)} steam reviews! (App ID : {appid})", color="green")
             return steam_reviews
+
         cursor_histories.append(cursor)
 
 
 def get_steam_reviews_all(appids, filter="all", language="all", day_range=30, review_type="all",
-                          purchase_type="all", num_per_page=20, filter_offtopic_activity=1):
+                          purchase_type="all", num_per_page=20, filter_offtopic_activity=1, max_count=None):
     steam_reviews = []
     for appid in appids:
         steam_reviews += get_steam_reviews(appid, filter=filter, language=language, day_range=day_range,
                                            review_type=review_type, num_per_page=num_per_page,
-                                           filter_offtopic_activity=filter_offtopic_activity)
+                                           filter_offtopic_activity=filter_offtopic_activity, max_count=max_count)
 
-    print_console("\n*** Completed ***", color="green")
+    print_console(f"\n*** Completed (Total : {len(steam_reviews)}) ***", color="green")
+
     return steam_reviews
 
 
 def out_steam_reviews(file_name, steam_reviews):
-    with open("steam_reviews.csv", mode='w', newline='\n', encoding='utf-8') as file:
+    with open(file_name, mode='w', newline='\n', encoding='utf-8') as file:
         file.write(f"{RECOMMENDATION_ID},"
                    f"{STEAM_ID},"
                    f"{NUM_GAME_OWNED},"
