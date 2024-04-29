@@ -94,7 +94,9 @@ def preprocess_review(data):
     data[REVIEW] = data[REVIEW].replace("\r", '').replace("\n", '')
 
     # 마크다운 태그 삭제
-    data[REVIEW] = re.sub(r'<(h1|h2|h3|b|u|hr)>', '', data[REVIEW])
+    data[REVIEW] = re.sub(r'\[(h1|h2|h3|b|u|i|strike|spoiler|hr|noparse)]', '', data[REVIEW])
+    data[REVIEW] = re.sub(r'\[/(h1|h2|h3|b|u|i|strike|spoiler|hr|noparse)]', '', data[REVIEW])
+    data[REVIEW] = re.sub(r'\[url=[^\]]*\]|\[/url\]', '', data[REVIEW])
 
     # 알파벳, 숫자 외의 문자를 공백으로 치환
     data[REVIEW] = re.sub(r'[^a-zA-Z0-9]', ' ', data[REVIEW])
@@ -245,7 +247,6 @@ outfile.write(f"{RECOMMENDATION_ID},"  # csv 파일에 헤더 작성
               f"{RECEIVED_FOR_FREE},"
               f"{WRITTEN_DURING_EARLY_ACCESS}\n"
               )
-
 
 for app_id in tqdm(app_ids, desc=f"{"리뷰 수집":15s}"):
     reviews = get_reviews(app_id,

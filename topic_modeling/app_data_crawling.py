@@ -1,8 +1,6 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from datetime import datetime
 from tqdm import tqdm
-from termcolor import colored
 import time
 import re
 
