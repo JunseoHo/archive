@@ -5,8 +5,6 @@ from nltk.stem import PorterStemmer
 from collections import Counter
 from tqdm import tqdm
 from collections import OrderedDict
-import networkx as nx
-import matplotlib.pyplot as plt
 import math
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -58,6 +56,12 @@ SW_CUSTOM = ['the', 'and', 'i', 'to', 'a', 'you', 'of', 'it', 'is', 'in', 'that'
 STOPWORDS = SW_NLTK + SW_ABUSE + SW_CUSTOM
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+   치환 사전
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+REPLACE = [('재밌', '재미')]
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
    메인 스크립트
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
@@ -88,7 +92,17 @@ stems_list = []
 
 for tokens in tqdm(tokens_list, desc="어간추출"):
     stems = [stemmer.stem(token) for token in tokens]
-    stems_list.append(stems)
+    replace_stems = []
+    for stem in stems:
+        replaced = False
+        for replace in REPLACE:
+            if stem == replace[0]:
+                replaced = True
+                replace_stems.append(replace[1])
+                break
+        if replaced is False:
+            replace_stems.append(stem)
+    stems_list.append(replace_stems)
 
 # 프로파일 생성
 term_set = set()
@@ -146,7 +160,7 @@ with open(TF_IDF_FILE_PATH, mode='w', encoding='utf-8') as outfile:
     # tf-idf가 높은 순으로 작성
     for term, tf_idf in tqdm(tf_idf_table, desc="TF-IDF 파일 작성"):
         outfile.write(f"{term},{tf_idf}\n")
-        
+
 # TF-IDF가 높은 상위 100개의 단어를 추출
 top_words = [word for word, tf_idf in sorted(tf_idf_table, key=lambda x: x[1], reverse=True)[:100]]
 

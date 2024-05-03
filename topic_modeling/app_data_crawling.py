@@ -9,13 +9,14 @@ import re
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 # 크롤링을 수행할 스팀 앱 페이지 주소
-URL = "https://store.steampowered.com/search/?tags=492&category1=998&supportedlang=english&ndl=1"
+# 2024년 5월 기준 Top Sellers 로 분류된 인디 태그를 포함하는 게임들
+URL = "https://store.steampowered.com/search/?supportedlang=koreana&tags=492&category1=998&hidef2p=1&filter=topsellers&ndl=1"
 
 # 스크롤 후 페이지 로딩을 기다리는 시간 (단위 : 초)
-LOAD_TIME = 5
+LOAD_TIME = 10
 
 # 스크롤 횟수 : 스크롤 한번 당 50개의 게임을 추가로 로딩
-SCROLL_COUNT = 9
+SCROLL_COUNT = 20
 
 # 외부에 출력할 파일 이름
 OUT_FILE_PATH = "data/app_data.csv"
@@ -64,6 +65,9 @@ app_data = []
 
 for a_tag in a_tags:
     match = re.match(r"https://store\.steampowered\.com/app/(\d+)/([^/]+)/", a_tag.get_attribute('href'))
+    if match is None:
+        print(a_tag.get_attribute('href'))
+        continue
     app_data.append({"app_id": match.group(1), "app_name": match.group(2)})
 
 # 웹 드라이버 종료

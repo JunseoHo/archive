@@ -139,12 +139,12 @@ model = unet_model(output_channels=OUTPUT_CLASSES)
 model.compile(
     optimizer='adam',
     loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-    metrics=[my_precision]
+    metrics=['accuracy']
 )
 tf.keras.utils.plot_model(model, show_shapes=True)
 
 # 초매개변수 선언
-EPOCHS = 1  # 에폭 수
+EPOCHS = 5  # 에폭 수
 VAL_SUBSPLITS = 5
 VALIDATION_STEPS = info.splits['test'].num_examples // BATCH_SIZE // VAL_SUBSPLITS
 
@@ -157,16 +157,16 @@ model_history = model.fit(train_batches, epochs=EPOCHS,
                           validation_steps=VALIDATION_STEPS,
                           validation_data=test_batches)
 
-loss = model_history.history['loss']  # 매 에폭이 끝날 때마다 측정된 학습 데이터에 대한 손실 함수 값
-val_loss = model_history.history['val_loss']  # 매 에폭이 끝날 때마다 측정된 검증 데이터에 대한 손실 함수 값
+accuracy = model_history.history['accuracy']  # 매 에폭이 끝날 때마다 측정된 학습 데이터에 대한 손실 함수 값
+val_accuracy = model_history.history['val_accuracy']  # 매 에폭이 끝날 때마다 측정된 검증 데이터에 대한 손실 함수 값
 
 # 데이터 시각화
 plt.figure()
-plt.plot(model_history.epoch, loss, 'r', label='Training loss')
-plt.plot(model_history.epoch, val_loss, 'bo', label='Validation loss')
-plt.title('Training and Validation Loss')
+plt.plot(model_history.epoch, accuracy, 'r', label='Training accuracy')
+plt.plot(model_history.epoch, val_accuracy, 'bo', label='Validation accuracy')
+plt.title('Training and Validation accuracy')
 plt.xlabel('Epoch')
-plt.ylabel('Loss Value')
+plt.ylabel('accuracy Value')
 plt.ylim([0, 1])
 plt.legend()
 plt.show()

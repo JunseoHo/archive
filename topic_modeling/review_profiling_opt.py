@@ -4,23 +4,23 @@ from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 from collections import Counter
 from tqdm import tqdm
-from collections import OrderedDict
-import networkx as nx
-import matplotlib.pyplot as plt
 import math
+from konlpy.tag import Komoran
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
    사용자 지정 변수
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 # 리뷰 데이터가 저장되어 있는 csv 파일의 위치
-IN_FILE_PATH = "data/reviews.csv"
+PREFIX = "negative_"
+
+IN_FILE_PATH = "data/" + PREFIX + "reviews.csv"
 
 # 외부에 출력할 파일 이름
-TF_FILE_PATH = "data/tf.csv"
-TF_TOP100_FILE_PATH = "data/tf_top100.csv"
-TF_IDF_FILE_PATH = "data/tf_idf.csv"
-CORR_TOP100_FILE_PATH = "data/corr_top100.csv"
+TF_FILE_PATH = "data/" + PREFIX + "tf.csv"
+TF_TOP100_FILE_PATH = "data/" + PREFIX + "tf_top100.csv"
+TF_IDF_FILE_PATH = "data/" + PREFIX + "tf_idf.csv"
+CO_OCURR_TOP100_FILE_PATH = "data/" + PREFIX + "co_ocurr.csv"
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
    불용어
@@ -55,7 +55,18 @@ SW_CUSTOM = ['the', 'and', 'i', 'to', 'a', 'you', 'of', 'it', 'is', 'in', 'that'
              'then', '2', 'h1', 'who', 'through', 'each', '1', 'over', '3', 'we', 'am'
              ]
 
-STOPWORDS = SW_NLTK + SW_ABUSE + SW_CUSTOM
+SW_CUSTOM = ['하', '아서', '지만', '어서', '네요', '라고', '거나', '이런', '그런', '저런', '이것', '저것', '그것' '이렇', '어디',
+             '특히', '어느', '때문', '스팀', '건지', '누드', '새끼', '여기', '저기', '거기', '이건', '저건', '그건', '대부분', '나름', '무엇', '이다',
+             '시발', '제가', '조금', '누구']
+
+# STOPWORDS = SW_NLTK + SW_ABUSE + SW_CUSTOM
+STOPWORDS = SW_CUSTOM
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+   치환 사전
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+REPLACE = [('재밌', '재미'), ('재미없', '재미')]
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
    메인 스크립트
@@ -82,11 +93,33 @@ for index, tokens in tqdm(enumerate(tokens_list), desc="불용어 제거"):
 # tokens_list = [tokens for tokens in tqdm(tokens_list, desc="토큰 개수가 4개 미만인 리뷰 제거") if len(tokens) > 3]
 
 # 어간 추출
-stemmer = PorterStemmer()
+# stemmer = PorterStemmer()
+stemmer = Komoran()
 stems_list = []
 
 for tokens in tqdm(tokens_list, desc="어간추출"):
-    stems = [stemmer.stem(token) for token in tokens]
+    stems = []
+    for token in tokens:
+        stems += stemmer.pos(token)
+    # stems = [stem[0] for stem in stems if stem[1] not in ['JKO', 'JKS', 'JKC', 'JKG', 'JKB', 'JKV', 'JKQ', 'JX', 'JC',
+    #                                                       'EP', 'EF', ' EC', 'ETN', 'ETM', 'XPN', 'XSN', 'XSV', 'XSA',
+    #                                                       'MAJ',
+    #                                                       'VCP', 'VCN', 'IC']]
+    stems = [stem[0] for stem in stems if stem[1] in ['NNG', 'NNP', 'NNB', 'NP', 'NR', 'VV', 'VA']]
+    stems = [stem for stem in stems if len(stem) != 1]
+    stems = [stem for stem in stems if stem not in STOPWORDS]
+    # stems = [stemmer.stem(token) for token in tokens]
+    replace_stems = []
+    for stem in stems:
+        replaced = False
+        for replace in REPLACE:
+            if stem == replace[0]:
+                replaced = True
+                replace_stems.append(replace[1])
+                break
+        if replaced is False:
+            replace_stems.append(stem)
+    stems_list.append(replace_stems)
     stems_list.append(stems)
 
 # 프로파일 생성
@@ -168,4 +201,4 @@ for prof in tqdm(filtered_profiles, desc="공출현 빈도 계산"):
                 word_matrix.loc[top_words[word1], top_words[word2]] += 1
 
 # CSV 파일로 저장
-word_matrix.to_csv(CORR_TOP100_FILE_PATH)
+word_matrix.to_csv(CO_OCURR_TOP100_FILE_PATH)

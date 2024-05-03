@@ -19,7 +19,7 @@ IN_FILE_PATH = "data/app_data.csv"
 QRY_FILTER = "all"
 
 # 리뷰를 작성한 사용자가 선택한 언어권
-QRY_LANGUAGE = "english"
+QRY_LANGUAGE = "koreana"
 
 # 오늘부터 n일 전까지의 유용한 평가를 찾습니다
 # FILTER의 값이 'all' 일 때만 적용할 수 있습니다
@@ -29,7 +29,7 @@ QRY_DAY_RANGE = 365
 # all - (기본값) 모든 평가
 # positive - 긍정적인 평가만
 # negative - 부정적인 평가만
-QRY_REVIEW_TYPE = "negative"
+QRY_REVIEW_TYPE = "positive"
 
 # all – 모든 평가
 # non_steam_purchase – 앱을 스팀에서 구매하지 않은 사람의 평가만 (베타 테스터, 선물 받은 사람 등)
@@ -47,10 +47,10 @@ QRY_FILTER_OFFTOPIC_ACTIVITY = 1
 
 # 앱 하나당 수집할 리뷰의 최대 개수
 # None 일 경우 수집할 수 있는 모든 리뷰를 수집합니다
-MAX_COUNT = 50
+MAX_COUNT = 10
 
 # 외부에 출력할 파일 이름
-OUT_FILE_PATH = "data/reviews.csv"
+OUT_FILE_PATH = "data/positive_reviews.csv"
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
     스크립트 상수
@@ -99,10 +99,11 @@ def preprocess_review(data):
     data[REVIEW] = re.sub(r'\[url=[^\]]*\]|\[/url\]', '', data[REVIEW])
 
     # 알파벳, 숫자 외의 문자를 공백으로 치환
-    data[REVIEW] = re.sub(r'[^a-zA-Z0-9]', ' ', data[REVIEW])
+    # data[REVIEW] = re.sub(r'[^a-zA-Z0-9]', ' ', data[REVIEW])
+    data[REVIEW] = re.sub(r'[^가-힣]', ' ', data[REVIEW])
 
     # 모든 알파벳을 소문자로 치환하고 양 쪽 끝의 공백을 제거
-    data[REVIEW] = data[REVIEW].lower().strip()
+    # data[REVIEW] = data[REVIEW].lower().strip()
 
     # 유닉스 시간 포맷을 년-월-일 시간 포맷으로 변경
     data[LAST_PLAYED] = datetime.fromtimestamp(data[LAST_PLAYED]).strftime("%Y-%m-%d")
