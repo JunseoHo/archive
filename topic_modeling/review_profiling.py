@@ -5,6 +5,8 @@ from nltk.stem import PorterStemmer
 from collections import Counter
 from tqdm import tqdm
 from collections import OrderedDict
+import networkx as nx
+import matplotlib.pyplot as plt
 import math
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -16,12 +18,15 @@ IN_FILE_PATH = "data/reviews.csv"
 
 # 외부에 출력할 파일 이름
 TF_FILE_PATH = "data/tf.csv"
+TF_TOP100_FILE_PATH = "data/tf_top100.csv"
 TF_IDF_FILE_PATH = "data/tf_idf.csv"
+CORR_TOP100_FILE_PATH = "data/corr_top100.csv"
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
    불용어
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
+# NLTK 라이브러리의 불용어 사전
 SW_NLTK = ['ours', 'be', "you'll", 've', 'is', "isn't", "wouldn't", 'about', 'had', "that'll", 'my', 'so', "aren't",
            'weren', 'out', 'because', 'below', 'where', 'why', 'shouldn', 'her', "won't", 'over', 'no', 'couldn',
            'did', "doesn't", 'down', 'shan', 'until', "should've", 'some', 'ma', 'both', 'theirs', 'yourselves',
@@ -38,8 +43,10 @@ SW_NLTK = ['ours', 'be', "you'll", 've', 'is', "isn't", "wouldn't", 'about', 'ha
            'what', 'needn', 'our', 'me', 'above', "mustn't", 'if', 't', 'you', "mightn't", 'a', 'while', "haven't",
            'being', 'isn']
 
+# 비속어 불용어 사전
 SW_ABUSE = ['nigga', 'fuck']
 
+# 사용자 불용어 사전
 SW_CUSTOM = ['the', 'and', 'i', 'to', 'a', 'you', 'of', 'it', 'is', 'in', 'that', 'for', 's', 'with', 'but', 'be',
              'are', 'can', 'on', 'have', 't', 'as', 'your', 'if', 'my', 'get', 'there', 'more', 'so', 'or', 'just',
              'at', 'some', 'one', 'they', 'me', 'will', 'an', 'from', 'up', 'do', 'b', 'what', 'by', 'them' 'also',
@@ -62,86 +69,105 @@ review_list = csv['review'].tolist()
 tokenizer = TreebankWordTokenizer()
 tokens_list = []
 
-for review in tqdm(review_list, desc=f"{"토큰화":15}"):
+for review in tqdm(review_list, desc="토큰화"):
+    # 비어있는 리뷰는 제외
     if (type(review) == float):
         continue
     tokens_list.append(tokenizer.tokenize(review))
 
 # 불용어 삭제
-for i, tokens in tqdm(enumerate(tokens_list), desc="불용어 제거"):
-    tokens_list[i] = [token for token in tokens if token not in STOPWORDS]
-# for tokens in tqdm(tokens_list, desc=f"{"불용어 제거":15}"):
-#     tokens = [token for token in tokens if token not in STOPWORDS]
+for index, tokens in tqdm(enumerate(tokens_list), desc="불용어 제거"):
+    tokens_list[index] = [token for token in tokens if token not in STOPWORDS]
 
-# 전처리 (토큰의 개수가 4개 미만인 리뷰는 제외)
-tokens_list = [tokens for tokens in tqdm(tokens_list, desc=f"{"토큰 개수가 4개 미만인 리뷰 제거":15}") if len(tokens) > 3]
+# 토큰의 개수가 4개 미만인 리뷰 제거
+tokens_list = [tokens for tokens in tqdm(tokens_list, desc="토큰 개수가 4개 미만인 리뷰 제거") if len(tokens) > 3]
 
 # 어간 추출
 stemmer = PorterStemmer()
 stems_list = []
 
-for tokens in tqdm(tokens_list, desc=f"{"어간추출":15}"):
+for tokens in tqdm(tokens_list, desc="어간추출"):
     stems = [stemmer.stem(token) for token in tokens]
     stems_list.append(stems)
 
 # 프로파일 생성
 term_set = set()
 
-for stems in tqdm(tokens_list, desc=f"{"BoW 생성":15}"):
+for stems in tqdm(tokens_list, desc="단어 가방 생성"):
     term_set.update(stems)
 
 term_list = list(term_set)
 
 profiles = []
 
-for stems in tqdm(stems_list, desc=f"{"DTM 생성":15}"):
+for stems in tqdm(stems_list, desc="프로파일 생성"):
     counter = Counter(stems)
     profile = {term: counter[term] for term in term_list}
     profiles.append(profile)
 
-# print(pd.DataFrame(profiles))
+# print(pd.DataFrame(profiles)) # 성능 상 문제로 사용하지 않음
 
 # TF 계산 및 출력
-tf = sum((Counter(profile) for profile in profiles), Counter())
+tf_table = sum((Counter(profile) for profile in tqdm(profiles, desc="TF 계산")), Counter())
 
 with open(TF_FILE_PATH, mode='w', encoding='utf-8') as outfile:
     # csv 파일 헤더 작성
-    outfile.write("term,frequency\n")
+    outfile.write("term,tf\n")
     # tf가 높은 순으로 작성
-    for term, frequency in tqdm(tf.most_common(), desc=f"{"출력 생성":15}"):
-        outfile.write(f"{term},{frequency}\n")
+    for term, tf in tqdm(tf_table.most_common(), desc="TF 파일 작성"):
+        outfile.write(f"{term},{tf}\n")
+
+with open(TF_TOP100_FILE_PATH, mode='w', encoding='utf-8') as outfile:
+    # csv 파일 헤더 작성
+    outfile.write("term,tf\n")
+    # tf가 높은 순으로 작성
+    for term, tf in tqdm(tf_table.most_common()[:100], desc="TF-Top100 파일 작성"):
+        outfile.write(f"{term},{tf}\n")
 
 # TF-IDF 계산 및 출력
-# 전체 문서 수
 num_documents = len(profiles)
-
-# 각 단어의 IDF를 계산합니다.
-# 전체 문서 수
-num_documents = len(profiles)
-
-# 각 단어의 IDF를 계산합니다.
 idf = {}
-term_document_count = {term: 0 for term in tf}
+df_table = {term: 0 for term in tf_table}
 
-# 각 단어가 등장한 문서의 개수를 세어줍니다.
-for term in tf:
-    document_frequency = sum(1 for profile in profiles if profile[term] > 0)
-    term_document_count[term] = document_frequency
+for term in tqdm(tf_table, desc="DF 계산"):
+    df = sum(1 for profile in profiles if profile[term] > 0)
+    df_table[term] = df
 
-# 각 단어의 IDF를 계산합니다.
-for term, document_frequency in term_document_count.items():
-    idf[term] = math.log(num_documents / (1 + document_frequency))
+for term, df in tqdm(df_table.items(), desc="IDF 계산"):
+    idf[term] = math.log(num_documents / (1 + df))
 
-# TF-IDF를 계산합니다.
-tf_idf = {term: frequency * idf[term] for term, frequency in tf.items()}
+tf_idf_table = {term: frequency * idf[term] for term, frequency in tf_table.items()}
 
-# TF-IDF를 내림차순으로 정렬합니다.
-sorted_tf_idf = sorted(tf_idf.items(), key=lambda x: x[1], reverse=True)
+tf_idf_table = sorted(tf_idf_table.items(), key=lambda x: x[1], reverse=True)  # 내림차순 정렬
 
-# TF-IDF를 파일로 출력합니다.
 with open(TF_IDF_FILE_PATH, mode='w', encoding='utf-8') as outfile:
     # csv 파일 헤더 작성
     outfile.write("term,tf-idf\n")
     # tf-idf가 높은 순으로 작성
-    for term, tf_idf_value in tqdm(sorted_tf_idf, desc="출력 생성"):
-        outfile.write(f"{term},{tf_idf_value}\n")
+    for term, tf_idf in tqdm(tf_idf_table, desc="TF-IDF 파일 작성"):
+        outfile.write(f"{term},{tf_idf}\n")
+        
+# TF-IDF가 높은 상위 100개의 단어를 추출
+top_words = [word for word, tf_idf in sorted(tf_idf_table, key=lambda x: x[1], reverse=True)[:100]]
+
+# 2차원 테이블 생성
+word_matrix = pd.DataFrame(index=top_words, columns=top_words, dtype=int)
+
+# 테이블 초기화
+word_matrix.fillna(0, inplace=True)
+
+filtered_profiles = []
+for prof in tqdm(profiles, desc="프로파일에서 TF-IDF Top 100을 제외하고 제거"):
+    filtered_profile = {key: value for key, value in prof.items() if key in top_words}
+    filtered_profiles.append(filtered_profile)
+
+# 각 딕셔너리에서 상위 100개의 단어의 공출현 빈도 계산
+for prof in tqdm(filtered_profiles, desc="공출현 빈도 계산"):
+    for word1 in top_words:
+        if word1 in prof:
+            for word2 in prof:
+                if word2 != word1 and word2 in top_words:
+                    word_matrix.loc[word1, word2] += 1
+
+# CSV 파일로 저장
+word_matrix.to_csv(CORR_TOP100_FILE_PATH)

@@ -29,7 +29,7 @@ QRY_DAY_RANGE = 365
 # all - (기본값) 모든 평가
 # positive - 긍정적인 평가만
 # negative - 부정적인 평가만
-QRY_REVIEW_TYPE = "positive"
+QRY_REVIEW_TYPE = "negative"
 
 # all – 모든 평가
 # non_steam_purchase – 앱을 스팀에서 구매하지 않은 사람의 평가만 (베타 테스터, 선물 받은 사람 등)
@@ -47,7 +47,7 @@ QRY_FILTER_OFFTOPIC_ACTIVITY = 1
 
 # 앱 하나당 수집할 리뷰의 최대 개수
 # None 일 경우 수집할 수 있는 모든 리뷰를 수집합니다
-MAX_COUNT = 10
+MAX_COUNT = 50
 
 # 외부에 출력할 파일 이름
 OUT_FILE_PATH = "data/reviews.csv"
@@ -94,8 +94,8 @@ def preprocess_review(data):
     data[REVIEW] = data[REVIEW].replace("\r", '').replace("\n", '')
 
     # 마크다운 태그 삭제
-    data[REVIEW] = re.sub(r'\[(h1|h2|h3|b|u|i|strike|spoiler|hr|noparse)]', '', data[REVIEW])
-    data[REVIEW] = re.sub(r'\[/(h1|h2|h3|b|u|i|strike|spoiler|hr|noparse)]', '', data[REVIEW])
+    data[REVIEW] = re.sub(r'\[(h1|h2|h3|b|u|i|strike|spoiler|hr|noparse|tr|th|td)]', '', data[REVIEW])
+    data[REVIEW] = re.sub(r'\[/(h1|h2|h3|b|u|i|strike|spoiler|hr|noparse|tr|th|td)]', '', data[REVIEW])
     data[REVIEW] = re.sub(r'\[url=[^\]]*\]|\[/url\]', '', data[REVIEW])
 
     # 알파벳, 숫자 외의 문자를 공백으로 치환
@@ -284,3 +284,5 @@ for app_id in tqdm(app_ids, desc=f"{"리뷰 수집":15s}"):
 outfile.close()
 
 print(f"{ANSI_RED}수집된 리뷰 데이터가 {OUT_FILE_PATH} 파일에 저장되었습니다.{ANSI_NC}")
+
+
