@@ -47,7 +47,7 @@ QRY_FILTER_OFFTOPIC_ACTIVITY = 1
 
 # 앱 하나당 수집할 리뷰의 최대 개수
 # None 일 경우 수집할 수 있는 모든 리뷰를 수집합니다
-MAX_COUNT = 10
+MAX_COUNT = 20
 
 # 외부에 출력할 파일 이름
 OUT_FILE_PATH = "data/positive_reviews.csv"
@@ -152,6 +152,8 @@ def get_reviews(app_id, filter, language, day_range, review_type,
     # 앱의 리뷰 정보를 담을 딕셔너리의 리스트
     reviews = []
 
+    processed_ids = set()  # 이미 처리된 리뷰의 RECOMMENDATION_ID를 저장할 집합
+
     while (True):
         # API 요청
         response = make_request(url, cursor)
@@ -174,6 +176,8 @@ def get_reviews(app_id, filter, language, day_range, review_type,
         # 리뷰 데이터들을 딕셔너리로 변환하여 리스트에 저장
         for review in json['reviews']:
             # 리뷰 데이터를 csv 포맷으로 저장할 수 있도록 전처리
+            if review[RECOMMENDATION_ID] in processed_ids:
+                continue
             preprocessed_review = preprocess_review({
                 RECOMMENDATION_ID: review[RECOMMENDATION_ID],
                 STEAM_ID: review[AUTHOR][STEAM_ID],
@@ -198,13 +202,14 @@ def get_reviews(app_id, filter, language, day_range, review_type,
             })
             # 전처리된 리뷰 데이터 딕셔너리를 리스트에 저장 (전처리 결과가 공백인 경우는 저장하지 않음)
             if not preprocessed_review[REVIEW].isspace():
+                processed_ids.add(preprocessed_review[RECOMMENDATION_ID])
                 reviews.append(preprocessed_review)
 
         # 커서 갱신 : 반드시 URLEncoded 처리가 진행되어야 한다, 여기서는 quote 함수 사용
         cursor = quote(json['cursor'])
 
         # 지금까지 수집한 리뷰의 개수가 MAX_COUNT 이상이면 함수 종료
-        if max_count != None and len(reviews) >= max_count:
+        if max_count is not None and len(reviews) >= max_count:
             return reviews[:max_count]
 
         # 현재 커서를 통해 API 를 호출한 적이 있다면 앱의 모든 리뷰를 반환한 것이므로 함수 종료

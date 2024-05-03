@@ -20,7 +20,7 @@ IN_FILE_PATH = "data/" + PREFIX + "reviews.csv"
 TF_FILE_PATH = "data/" + PREFIX + "tf.csv"
 TF_TOP100_FILE_PATH = "data/" + PREFIX + "tf_top100.csv"
 TF_IDF_FILE_PATH = "data/" + PREFIX + "tf_idf.csv"
-CO_OCURR_TOP100_FILE_PATH = "data/" + PREFIX + "co_ocurr.csv"
+CO_OCURR_TOP100_FILE_PATH = "data/" + PREFIX + "co_occur.csv"
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
    불용어
@@ -55,9 +55,9 @@ SW_CUSTOM = ['the', 'and', 'i', 'to', 'a', 'you', 'of', 'it', 'is', 'in', 'that'
              'then', '2', 'h1', 'who', 'through', 'each', '1', 'over', '3', 'we', 'am'
              ]
 
-SW_CUSTOM = ['하', '아서', '지만', '어서', '네요', '라고', '거나', '이런', '그런', '저런', '이것', '저것', '그것' '이렇', '어디',
+SW_CUSTOM = ['아서', '지만', '어서', '네요', '라고', '거나', '이런', '그런', '저런', '이것', '저것', '그것', '이렇', '어디',
              '특히', '어느', '때문', '스팀', '건지', '누드', '새끼', '여기', '저기', '거기', '이건', '저건', '그건', '대부분', '나름', '무엇', '이다',
-             '시발', '제가', '조금', '누구']
+             '시발', '제가', '조금', '누구', '자체', '병신', "씨발", '동안', '이랑', '정도', '하나', '이후', '스티커', '이거', '저거', '그거', '경우', '부분']
 
 # STOPWORDS = SW_NLTK + SW_ABUSE + SW_CUSTOM
 STOPWORDS = SW_CUSTOM
@@ -66,7 +66,7 @@ STOPWORDS = SW_CUSTOM
    치환 사전
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-REPLACE = [('재밌', '재미'), ('재미없', '재미')]
+REPLACE = [('재밌', '재미'), ('재미없', '재미'), ('느끼','느낌'), ('타임', '시간')]
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
    메인 스크립트
@@ -101,11 +101,12 @@ for tokens in tqdm(tokens_list, desc="어간추출"):
     stems = []
     for token in tokens:
         stems += stemmer.pos(token)
+    # https://docs.komoran.kr/firststep/postypes.html
     # stems = [stem[0] for stem in stems if stem[1] not in ['JKO', 'JKS', 'JKC', 'JKG', 'JKB', 'JKV', 'JKQ', 'JX', 'JC',
     #                                                       'EP', 'EF', ' EC', 'ETN', 'ETM', 'XPN', 'XSN', 'XSV', 'XSA',
     #                                                       'MAJ',
     #                                                       'VCP', 'VCN', 'IC']]
-    stems = [stem[0] for stem in stems if stem[1] in ['NNG', 'NNP', 'NNB', 'NP', 'NR', 'VV', 'VA']]
+    stems = [stem[0] for stem in stems if stem[1] in ['NNG', 'NNP', 'NP', 'NR']]
     stems = [stem for stem in stems if len(stem) != 1]
     stems = [stem for stem in stems if stem not in STOPWORDS]
     # stems = [stemmer.stem(token) for token in tokens]
@@ -120,7 +121,6 @@ for tokens in tqdm(tokens_list, desc="어간추출"):
         if replaced is False:
             replace_stems.append(stem)
     stems_list.append(replace_stems)
-    stems_list.append(stems)
 
 # 프로파일 생성
 term_set = set()
