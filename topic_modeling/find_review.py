@@ -20,7 +20,7 @@ CO_OCURR_TOP100_FILE_PATH = "data/" + PREFIX + "co_occur.csv"
 csv = pd.read_csv(IN_FILE_PATH)
 review_list = csv['review'].tolist()
 
-keywords = ["개발자", "업데이트", "한글"]
+keywords = ["스토리", "진행", "느낌"]
 
 for review in review_list:
     if isinstance(review, float):

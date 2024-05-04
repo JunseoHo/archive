@@ -1,3 +1,5 @@
+import re
+
 import pandas as pd
 from nltk import TreebankWordTokenizer
 from nltk.corpus import stopwords
@@ -59,21 +61,44 @@ SW_CUSTOM = ['아서', '지만', '어서', '네요', '라고', '거나', '이런
              '시발', '제가', '조금', '누구', '자체', '병신', "씨발", '동안', '이랑', '정도', '하나', '이후', '스티커', '이거', '저거', '그거', '경우', '부분']
 
 # STOPWORDS = SW_NLTK + SW_ABUSE + SW_CUSTOM
+
+SW_CUSTOM = ['아서', '지만', '어서', '네요', '라고', '거나', '이런', '그런', '저런', '이것', '저것', '그것', '이렇', '어디',
+             '특히', '어느', '때문', '스팀', '건지', '누드', '새끼', '여기', '저기', '거기', '이건', '저건', '그건', '대부분', '나름', '무엇', '이다',
+             '시발', '제가', '조금', '누구', '자체', '병신', "씨발", '동안', '이랑', '정도', '하나', '이후', '스티커', '이거', '저거', '그거', '경우',
+             '부분']
+
+# STOPWORDS = SW_NLTK + SW_ABUSE + SW_CUSTOM
 STOPWORDS = SW_CUSTOM
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
    치환 사전
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-REPLACE = [('재밌', '재미'), ('재미없', '재미'), ('느끼','느낌'), ('타임', '시간')]
+PRE_REPLACE = [('로그라이트', '로그라이크'), ('로그라이크', 'Roguelike')]
+
+POST_REPLACE = [('재밌', '재미'), ('재미없', '재미'), ('느끼', '느낌'), ('타임', '시간'), ('이야기', '스토리'), ('지역', '스테이지')]
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
    메인 스크립트
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
+print(f"Start with {IN_FILE_PATH}")
+
 # 리뷰 데이터의 'review' 칼럼을 리스트로 저장
 csv = pd.read_csv(IN_FILE_PATH)
 review_list = csv['review'].tolist()
+
+# 선치환
+pre_replaced = []
+
+for review in review_list:
+    if type(review) is float:  # 비어있는 리뷰는 제외
+        continue
+    for prerep in PRE_REPLACE:
+        review = re.sub(prerep[0], prerep[1], review)
+    pre_replaced.append(review)
+
+review_list = pre_replaced
 
 # 토큰화
 tokenizer = TreebankWordTokenizer()
@@ -105,14 +130,14 @@ for tokens in tqdm(tokens_list, desc="어간추출"):
     #                                                       'EP', 'EF', ' EC', 'ETN', 'ETM', 'XPN', 'XSN', 'XSV', 'XSA',
     #                                                       'MAJ',
     #                                                       'VCP', 'VCN', 'IC']]
-    stems = [stem[0] for stem in stems if stem[1] in ['NNG', 'NNP', 'NP', 'NR']]
+    stems = [stem[0] for stem in stems if stem[1] in ['NNG', 'NNP', 'SL']]
     stems = [stem for stem in stems if len(stem) != 1]
     stems = [stem for stem in stems if stem not in STOPWORDS]
     # stems = [stemmer.stem(token) for token in tokens]
     replace_stems = []
     for stem in stems:
         replaced = False
-        for replace in REPLACE:
+        for replace in POST_REPLACE:
             if stem == replace[0]:
                 replaced = True
                 replace_stems.append(replace[1])
@@ -128,7 +153,7 @@ dictionary.filter_extremes(no_below=2, no_above=0.5)
 corpus = [dictionary.doc2bow(text) for text in stems_list]
 temp = dictionary[0]
 id2word = dictionary.id2token
-ldaModel = LdaModel(corpus=corpus,num_topics=3, id2word=id2word,chunksize=2000, passes=20, iterations=400)
+ldaModel = LdaModel(corpus=corpus,num_topics=4, id2word=id2word,chunksize=2000, passes=10, iterations=400)
 
 top_topics = ldaModel.top_topics(corpus) #, num_words=20)
 

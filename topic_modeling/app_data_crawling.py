@@ -10,10 +10,10 @@ import re
 
 # 크롤링을 수행할 스팀 앱 페이지 주소
 # 2024년 5월 기준 Top Sellers 로 분류된 인디 태그를 포함하는 게임들
-URL = "https://store.steampowered.com/search/?supportedlang=koreana&tags=492&category1=998&hidef2p=1&filter=topsellers&ndl=1"
+URL = "https://store.steampowered.com/search/?supportedlang=koreana&tags=492&category1=998&filter=topsellers&ndl=1"
 
 # 스크롤 후 페이지 로딩을 기다리는 시간 (단위 : 초)
-LOAD_TIME = 10
+LOAD_TIME = 5
 
 # 스크롤 횟수 : 스크롤 한번 당 50개의 게임을 추가로 로딩
 SCROLL_COUNT = 20
