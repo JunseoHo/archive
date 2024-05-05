@@ -1,4 +1,5 @@
+from konlpy.tag import Komoran
 from nltk import TreebankWordTokenizer
 
-tokenizer = TreebankWordTokenizer()
-print(tokenizer.tokenize("콜라보레 이션을 합시다"))
+kom = Komoran()
+print(kom.pos("무자본"))

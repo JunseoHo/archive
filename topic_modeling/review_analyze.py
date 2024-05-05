@@ -34,21 +34,23 @@ COLLABORATION = "콜라보레이션"  # 타 IP를 일시적으로 빌려 게임 
 PACKAGE = "패키지"  # 게임 내에서 캐시로 구매할 수 있는 상품
 RESOURCE = "자원"  # 게임 내에서 획득할 수 있는 재화
 CONTENTS = "콘텐츠"  # 게임 내에서 플레이 가능한 요소
-AUTOPLAY = "오토플레이"  # 게임 내 컨텐츠를 사용자 간섭 없이 방치하여 자동으로 플레이할 수 있는 기능
 CHARACTER = "캐릭터"
 ITEM = "아이템"
 
 # 공통 불용어
 COMMON_STOPWORDS = ['시발', '씨발', '병신', '구글스토어', '구글', '스토어', '해주시', '이제']
 # 공통 한단어 사전
-COMMON_MONODICT = ['운', '돈', '말', '섭', '폰', '맘', '답', '팀', '욕']
+COMMON_MONODICT = ['운', '돈', '말', '섭', '폰', '맘', '답', '팀', '욕', '맵']
 # 공통 후치환
 COMMON_REPLDICT = [('행동력', FATIGUE), ('능지', '지능'), ('콜라보', COLLABORATION), ('별점', '평점'),
                    ('다운', '다운로드'), ('가차', GACHA), ('픽업', GACHA), ('뽑기', GACHA), ('스킨', '코스튬'), ('오픈', '출시'),
                    ('컨트롤', '조작'),
                    ('스코어', '점수'), ('애니', '애니메이션'), ('리세', '리세마라'),
                    ('재료', '자원'), ('섭', '서버'), ('폰', '모바일'), ('맘', '마음'),
-                   ('게관위', '게임물관리위원회'), ('겜관위', '게임물관리위원회'), ('사료', CASH), ('재화', '자원')]
+                   ('게관위', '게임물관리위원회'), ('겜관위', '게임물관리위원회'), ('사료', CASH), ('재화', '자원'), ('현질', '과금'), ('노래', '음악'),
+                   ('서브컬쳐', '서브컬처'), ('에러', '오류'), ('초보자', '뉴비'), ('초보', '뉴비'), ('레어템', ITEM), ('레어도', '등급'),
+                   ('티어', '등급'), ('숙제', '일일퀘스트'), ('일퀘', '일일퀘스트'), ('제화', '재화'), ('오토', '자동'), ('신규유저', '뉴비'),
+                   ('이야기', '스토리'), ('헬적화', '최적화'), ('맵', '스테이지'), ('픽뚫', GACHA), ('수정', '업데이트'), ('업뎃', '업데이트')]
 
 # 명일방주 데이터 파일 위치
 ARKNIGHTS_INFILE = "review/arknights.csv"
@@ -59,7 +61,8 @@ ARKNIGHTS_MONODICT = ['돌']
 # 명일방주 후치환
 ARKNIGHTS_REPLDICT = [('합성옥', CASH), ('오리지늄', CASH), ('헤드헌팅', GACHA), ('이성', FATIGUE), ('용문폐', RESOURCE), ('돌', CASH),
                       ('타워디펜스', '디펜스'), ('협약', CONTENTS), ('작전', CONTENTS), ('섬멸전', CONTENTS), ('섬멸작전', CONTENTS),
-                      ('대리지휘', AUTOPLAY), ('오퍼레이터', CHARACTER), ('오퍼', CHARACTER)]
+                      ('대리지휘', '자동'), ('오퍼레이터', CHARACTER), ('오퍼', CHARACTER), ('훈장', '업적'), ('위기협약', CONTENTS),
+                      ('로그인', '접속'), ('유저', '플레이어'), ('무자본', '무과금')]
 
 # 블루아카이브 데이터 파일 위치
 BLUEARCHIVE_INFILE = "review/bluearchive.csv"
@@ -218,11 +221,11 @@ def analyze(profiles):
 
 arknights_profiles = get_profiles(ARKNIGHTS_INFILE, ARKNIGHTS_STOPWORDS, ARKNIGHTS_MONODICT, ARKNIGHTS_REPLDICT)
 
-bluearchive_profiles = get_profiles(BLUEARCHIVE_INFILE, BLUEARCHIVE_STOPWORDS, BLUEARCHIVE_MONODICT,
-                                    BLUEARCHIVE_REPLDICT)
+# bluearchive_profiles = get_profiles(BLUEARCHIVE_INFILE, BLUEARCHIVE_STOPWORDS, BLUEARCHIVE_MONODICT,
+#                                     BLUEARCHIVE_REPLDICT)
+#
+# genshin_profiles = get_profiles(GENSHIN_INFILE, GENSHIN_STOPWORDS, GENSHIN_MONODICT, GENSHIN_REPLDICT)
 
-genshin_profiles = get_profiles(GENSHIN_INFILE, GENSHIN_STOPWORDS, GENSHIN_MONODICT, GENSHIN_REPLDICT)
-
-profiles = arknights_profiles + bluearchive_profiles + genshin_profiles
+profiles = arknights_profiles
 
 analyze(profiles)
