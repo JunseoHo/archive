@@ -1,27 +1,24 @@
-import re
-
 import pandas as pd
 from nltk import TreebankWordTokenizer
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 from collections import Counter
 from tqdm import tqdm
+from collections import OrderedDict
 import math
-from konlpy.tag import Komoran
-from gensim.models.ldamodel import LdaModel
-from gensim.models.callbacks import CoherenceMetric
-from gensim import corpora
-from gensim.models.callbacks import PerplexityMetric
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
    사용자 지정 변수
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 # 리뷰 데이터가 저장되어 있는 csv 파일의 위치
-PREFIX = "negative_"
+IN_FILE_PATH = "steam_data/reviews.csv"
 
-IN_FILE_PATH = "steam_data/" + PREFIX + "reviews.csv"
-OUT_FILE_PATH = "steam_data/" + PREFIX + "topics.html"
+# 외부에 출력할 파일 이름
+TF_FILE_PATH = "steam_data/tf.csv"
+TF_TOP100_FILE_PATH = "steam_data/tf_top100.csv"
+TF_IDF_FILE_PATH = "steam_data/tf_idf.csv"
+CORR_TOP100_FILE_PATH = "steam_data/corr_top100.csv"
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
    불용어
@@ -56,56 +53,29 @@ SW_CUSTOM = ['the', 'and', 'i', 'to', 'a', 'you', 'of', 'it', 'is', 'in', 'that'
              'then', '2', 'h1', 'who', 'through', 'each', '1', 'over', '3', 'we', 'am'
              ]
 
-SW_CUSTOM = ['아서', '지만', '어서', '네요', '라고', '거나', '이런', '그런', '저런', '이것', '저것', '그것', '이렇', '어디',
-             '특히', '어느', '때문', '스팀', '건지', '누드', '새끼', '여기', '저기', '거기', '이건', '저건', '그건', '대부분', '나름', '무엇', '이다',
-             '시발', '제가', '조금', '누구', '자체', '병신', "씨발", '동안', '이랑', '정도', '하나', '이후', '스티커', '이거', '저거', '그거', '경우', '부분']
-
-# STOPWORDS = SW_NLTK + SW_ABUSE + SW_CUSTOM
-
-SW_CUSTOM = ['아서', '지만', '어서', '네요', '라고', '거나', '이런', '그런', '저런', '이것', '저것', '그것', '이렇', '어디',
-             '특히', '어느', '때문', '스팀', '건지', '누드', '새끼', '여기', '저기', '거기', '이건', '저건', '그건', '대부분', '나름', '무엇', '이다',
-             '시발', '제가', '조금', '누구', '자체', '병신', "씨발", '동안', '이랑', '정도', '하나', '이후', '스티커', '이거', '저거', '그거', '경우',
-             '부분']
-
-# STOPWORDS = SW_NLTK + SW_ABUSE + SW_CUSTOM
-STOPWORDS = SW_CUSTOM
+STOPWORDS = SW_NLTK + SW_ABUSE + SW_CUSTOM
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
    치환 사전
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-PRE_REPLACE = [('로그라이트', '로그라이크'), ('로그라이크', 'Roguelike')]
-
-POST_REPLACE = [('재밌', '재미'), ('재미없', '재미'), ('느끼', '느낌'), ('타임', '시간'), ('이야기', '스토리'), ('지역', '스테이지')]
+REPLACE = [('재밌', '재미')]
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
    메인 스크립트
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-print(f"Start with {IN_FILE_PATH}")
-
 # 리뷰 데이터의 'review' 칼럼을 리스트로 저장
 csv = pd.read_csv(IN_FILE_PATH)
 review_list = csv['review'].tolist()
-
-# 선치환
-pre_replaced = []
-
-for review in review_list:
-    if type(review) is float:  # 비어있는 리뷰는 제외
-        continue
-    for prerep in PRE_REPLACE:
-        review = re.sub(prerep[0], prerep[1], review)
-    pre_replaced.append(review)
-
-review_list = pre_replaced
 
 # 토큰화
 tokenizer = TreebankWordTokenizer()
 tokens_list = []
 
 for review in tqdm(review_list, desc="토큰화"):
-    if type(review) is float:  # 비어있는 리뷰는 제외
+    # 비어있는 리뷰는 제외
+    if (type(review) == float):
         continue
     tokens_list.append(tokenizer.tokenize(review))
 
@@ -114,30 +84,18 @@ for index, tokens in tqdm(enumerate(tokens_list), desc="불용어 제거"):
     tokens_list[index] = [token for token in tokens if token not in STOPWORDS]
 
 # 토큰의 개수가 4개 미만인 리뷰 제거
-# tokens_list = [tokens for tokens in tqdm(tokens_list, desc="토큰 개수가 4개 미만인 리뷰 제거") if len(tokens) > 3]
+tokens_list = [tokens for tokens in tqdm(tokens_list, desc="토큰 개수가 4개 미만인 리뷰 제거") if len(tokens) > 3]
 
 # 어간 추출
-# stemmer = PorterStemmer()
-stemmer = Komoran()
+stemmer = PorterStemmer()
 stems_list = []
 
 for tokens in tqdm(tokens_list, desc="어간추출"):
-    stems = []
-    for token in tokens:
-        stems += stemmer.pos(token)
-    # https://docs.komoran.kr/firststep/postypes.html
-    # stems = [stem[0] for stem in stems if stem[1] not in ['JKO', 'JKS', 'JKC', 'JKG', 'JKB', 'JKV', 'JKQ', 'JX', 'JC',
-    #                                                       'EP', 'EF', ' EC', 'ETN', 'ETM', 'XPN', 'XSN', 'XSV', 'XSA',
-    #                                                       'MAJ',
-    #                                                       'VCP', 'VCN', 'IC']]
-    stems = [stem[0] for stem in stems if stem[1] in ['NNG', 'NNP', 'SL']]
-    stems = [stem for stem in stems if len(stem) != 1]
-    stems = [stem for stem in stems if stem not in STOPWORDS]
-    # stems = [stemmer.stem(token) for token in tokens]
+    stems = [stemmer.stem(token) for token in tokens]
     replace_stems = []
     for stem in stems:
         replaced = False
-        for replace in POST_REPLACE:
+        for replace in REPLACE:
             if stem == replace[0]:
                 replaced = True
                 replace_stems.append(replace[1])
@@ -146,29 +104,84 @@ for tokens in tqdm(tokens_list, desc="어간추출"):
             replace_stems.append(stem)
     stems_list.append(replace_stems)
 
-dictionary = corpora.Dictionary(stems_list)
+# 프로파일 생성
+term_set = set()
 
-dictionary.filter_extremes(no_below=2, no_above=0.5)
+for stems in tqdm(tokens_list, desc="단어 가방 생성"):
+    term_set.update(stems)
 
-corpus = [dictionary.doc2bow(text) for text in stems_list]
-temp = dictionary[0]
-id2word = dictionary.id2token
-ldaModel = LdaModel(corpus=corpus,num_topics=4, id2word=id2word,chunksize=2000, passes=10, iterations=400)
+term_list = list(term_set)
 
-top_topics = ldaModel.top_topics(corpus) #, num_words=20)
+profiles = []
 
-# Average topic coherence is the sum of topic coherences of all topics, divided by the number of topics.
-avg_topic_coherence = sum([t[1] for t in top_topics]) / 5
-print('Average topic coherence: %.4f.' % avg_topic_coherence)
+for stems in tqdm(stems_list, desc="프로파일 생성"):
+    counter = Counter(stems)
+    profile = {term: counter[term] for term in term_list}
+    profiles.append(profile)
 
-from pprint import pprint
-pprint(top_topics)
+# print(pd.DataFrame(profiles)) # 성능 상 문제로 사용하지 않음
 
-import pickle
-import pyLDAvis.gensim_models as gensimvis
-import pyLDAvis
-from gensim.models.coherencemodel import CoherenceModel
-import matplotlib.pyplot as plt
+# TF 계산 및 출력
+tf_table = sum((Counter(profile) for profile in tqdm(profiles, desc="TF 계산")), Counter())
 
-lda_visualization = gensimvis.prepare(ldaModel, corpus, dictionary, sort_topics=False)
-pyLDAvis.save_html(lda_visualization, OUT_FILE_PATH)
+with open(TF_FILE_PATH, mode='w', encoding='utf-8') as outfile:
+    # csv 파일 헤더 작성
+    outfile.write("term,tf\n")
+    # tf가 높은 순으로 작성
+    for term, tf in tqdm(tf_table.most_common(), desc="TF 파일 작성"):
+        outfile.write(f"{term},{tf}\n")
+
+with open(TF_TOP100_FILE_PATH, mode='w', encoding='utf-8') as outfile:
+    # csv 파일 헤더 작성
+    outfile.write("term,tf\n")
+    # tf가 높은 순으로 작성
+    for term, tf in tqdm(tf_table.most_common()[:100], desc="TF-Top100 파일 작성"):
+        outfile.write(f"{term},{tf}\n")
+
+# TF-IDF 계산 및 출력
+num_documents = len(profiles)
+idf = {}
+df_table = {term: 0 for term in tf_table}
+
+for term in tqdm(tf_table, desc="DF 계산"):
+    df = sum(1 for profile in profiles if profile[term] > 0)
+    df_table[term] = df
+
+for term, df in tqdm(df_table.items(), desc="IDF 계산"):
+    idf[term] = math.log(num_documents / (1 + df))
+
+tf_idf_table = {term: frequency * idf[term] for term, frequency in tf_table.items()}
+
+tf_idf_table = sorted(tf_idf_table.items(), key=lambda x: x[1], reverse=True)  # 내림차순 정렬
+
+with open(TF_IDF_FILE_PATH, mode='w', encoding='utf-8') as outfile:
+    # csv 파일 헤더 작성
+    outfile.write("term,tf-idf\n")
+    # tf-idf가 높은 순으로 작성
+    for term, tf_idf in tqdm(tf_idf_table, desc="TF-IDF 파일 작성"):
+        outfile.write(f"{term},{tf_idf}\n")
+
+# TF-IDF가 높은 상위 100개의 단어를 추출
+top_words = [word for word, tf_idf in sorted(tf_idf_table, key=lambda x: x[1], reverse=True)[:100]]
+
+# 2차원 테이블 생성
+word_matrix = pd.DataFrame(index=top_words, columns=top_words, dtype=int)
+
+# 테이블 초기화
+word_matrix.fillna(0, inplace=True)
+
+filtered_profiles = []
+for prof in tqdm(profiles, desc="프로파일에서 TF-IDF Top 100을 제외하고 제거"):
+    filtered_profile = {key: value for key, value in prof.items() if key in top_words}
+    filtered_profiles.append(filtered_profile)
+
+# 각 딕셔너리에서 상위 100개의 단어의 공출현 빈도 계산
+for prof in tqdm(filtered_profiles, desc="공출현 빈도 계산"):
+    for word1 in top_words:
+        if word1 in prof:
+            for word2 in prof:
+                if word2 != word1 and word2 in top_words:
+                    word_matrix.loc[word1, word2] += 1
+
+# CSV 파일로 저장
+word_matrix.to_csv(CORR_TOP100_FILE_PATH)
