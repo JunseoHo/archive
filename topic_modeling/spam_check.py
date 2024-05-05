@@ -1,7 +1,7 @@
 import pandas as pd
 
 term_list = pd.read_csv('data/tf.csv')['term'].tolist()
-review_list = pd.read_csv('review/arknights.csv')['review'].tolist()
+review_list = pd.read_csv('review/bluearchive.csv')['review'].tolist()
 
 spam = []
 for review in review_list:

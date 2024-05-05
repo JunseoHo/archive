@@ -9,7 +9,7 @@ import re
    사용자 지정 변수
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 HTML_DIR = "html/"
-HTML_NAMES = ["nikke", 'arknights', 'starrail', 'genshin']
+HTML_NAMES = ["nikke", 'arknights', 'starrail', 'genshin', 'bluearchive']
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
    스크립트 상수
